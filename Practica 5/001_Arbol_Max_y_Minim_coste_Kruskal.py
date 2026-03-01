@@ -2,21 +2,21 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-class KruskalSimulator:
-    def __init__(self, grafo):
-        self.grafo = grafo
-        self.nodos = list(grafo.keys())
-        self.aristas = self._obtener_aristas()
+class DeliveryOptimizer:
+    def __init__(self, zonas):
+        self.zonas = zonas
+        self.nodos = list(zonas.keys())
+        self.conexiones = self._obtener_conexiones()
         
-    def _obtener_aristas(self):
-        """Extrae todas las aristas únicas del grafo"""
-        aristas = set()
-        for nodo in self.grafo:
-            for vecino, peso in self.grafo[nodo]:
-                # Ordenar para evitar duplicados A-B y B-A
-                arista_ordenada = tuple(sorted([nodo, vecino])) + (peso,)
-                aristas.add(arista_ordenada)
-        return sorted(list(aristas), key=lambda x: x[2])  # Ordenar por peso
+    def _obtener_conexiones(self):
+        """Extrae todas las conexiones únicas entre zonas"""
+        conexiones = set()
+        for zona in self.zonas:
+            for vecino, distancia in self.zonas[zona]:
+                # Ordenar para evitar duplicados
+                conexion_ordenada = tuple(sorted([zona, vecino])) + (distancia,)
+                conexiones.add(conexion_ordenada)
+        return sorted(list(conexiones), key=lambda x: x[2])
     
     def _encontrar(self, padre, nodo):
         """Encuentra la raíz de un nodo en el conjunto disjunto"""
@@ -40,319 +40,278 @@ class KruskalSimulator:
             return True
         return False
     
-    def kruskal_minimo_consola(self):
-        """Algoritmo de Kruskal para árbol de expansión mínima"""
+    def ruta_delivery_optima(self):
+        """Encuentra la ruta de delivery más eficiente (menor distancia total)"""
         print("=" * 70)
-        print("ALGORITMO DE KRUSKAL - ÁRBOL DE EXPANSIÓN MÍNIMA")
+        print("OPTIMIZADOR DE RUTAS DE DELIVERY")
         print("=" * 70)
+        print("Buscando la conexión más eficiente entre zonas de reparto")
+        print()
         
         # Inicializar estructuras
-        aristas_ordenadas = self.aristas.copy()
-        padre = {nodo: nodo for nodo in self.nodos}
-        rango = {nodo: 0 for nodo in self.nodos}
-        mst = []
-        costo_total = 0
+        conexiones_ordenadas = self.conexiones.copy()
+        padre = {zona: zona for zona in self.nodos}
+        rango = {zona: 0 for zona in self.nodos}
+        ruta_optima = []
+        distancia_total = 0
         
-        print("Aristas ordenadas por peso (menor a mayor):")
-        for i, (u, v, peso) in enumerate(aristas_ordenadas, 1):
-            print(f"  {i}. {u}-{v} (peso: {peso})")
+        print("Distancias entre zonas ordenadas (de menor a mayor):")
+        for i, (zona1, zona2, distancia) in enumerate(conexiones_ordenadas, 1):
+            print(f"  {i}. {zona1} - {zona2}: {distancia} km")
         print()
         
         paso = 1
         
-        for arista in aristas_ordenadas:
-            u, v, peso = arista
+        for conexion in conexiones_ordenadas:
+            zona1, zona2, distancia = conexion
             
-            print(f"--- PASO {paso} ---")
-            print(f"Procesando arista: {u}-{v} (peso: {peso})")
-            print(f"Conjuntos actuales: {padre}")
-            print(f"Aristas en MST: {mst}")
-            print(f"Costo acumulado: {costo_total}")
+            print(f"--- ANÁLISIS {paso} ---")
+            print(f"Evaluando conexión: {zona1} - {zona2} (distancia: {distancia} km)")
+            print(f"Conexiones actualmente seleccionadas: {ruta_optima}")
+            print(f"Distancia acumulada: {distancia_total} km")
             print()
             
-            raiz_u = self._encontrar(padre, u)
-            raiz_v = self._encontrar(padre, v)
+            raiz1 = self._encontrar(padre, zona1)
+            raiz2 = self._encontrar(padre, zona2)
             
-            print(f"  Raíz de {u}: {raiz_u}")
-            print(f"  Raíz de {v}: {raiz_v}")
+            print(f"  Grupo de {zona1}: {raiz1}")
+            print(f"  Grupo de {zona2}: {raiz2}")
             
-            if raiz_u != raiz_v:
-                # No forman ciclo, agregar al MST
-                if self._unir(padre, rango, u, v):
-                    mst.append((u, v, peso))
-                    costo_total += peso
-                    print(f"  ✓ AÑADIDA: {u}-{v} al MST")
-                    print(f"  Conjuntos actualizados: {padre}")
+            if raiz1 != raiz2:
+                # No forman ciclo, se puede agregar a la ruta
+                if self._unir(padre, rango, zona1, zona2):
+                    ruta_optima.append((zona1, zona2, distancia))
+                    distancia_total += distancia
+                    print(f"  ✓ CONEXION AGREGADA: Conecta {zona1} con {zona2}")
+                    print(f"  Grupos actualizados: {padre}")
                 else:
-                    print(f"  ✗ NO SE PUDO UNIR (error)")
+                    print(f"  ✗ ERROR: No se pudo establecer la conexión")
             else:
-                print(f"  ✗ DESCARTADA: Formaría ciclo")
+                print(f"  ✗ CONEXION DESCARTADA: Las zonas ya están conectadas (evitaría duplicar rutas)")
             
             paso += 1
             print("-" * 50)
             
-            if len(mst) == len(self.nodos) - 1:
-                print("¡Se alcanzó el número máximo de aristas para el MST!")
+            if len(ruta_optima) == len(self.nodos) - 1:
+                print("¡Se ha encontrado la red de conexiones óptima!")
                 break
         
         # Resultados finales
         print("\n" + "=" * 70)
-        print("RESULTADOS FINALES - ÁRBOL DE EXPANSIÓN MÍNIMA")
+        print("RUTA DE DELIVERY OPTIMIZADA")
         print("=" * 70)
-        print("Aristas del MST:")
-        for i, (u, v, peso) in enumerate(mst, 1):
-            print(f"  {i}. {u}-{v} (peso: {peso})")
-        print(f"\nCosto total: {costo_total}")
-        print(f"Nodos conectados: {len(set([nodo for arista in mst for nodo in arista[:2]]))}")
-        print(f"Todos los nodos conectados: {len(set([nodo for arista in mst for nodo in arista[:2]])) == len(self.nodos)}")
+        print("Conexiones seleccionadas (rutas a utilizar):")
+        for i, (zona1, zona2, distancia) in enumerate(ruta_optima, 1):
+            print(f"  {i}. {zona1} ↔ {zona2}: {distancia} km")
         
-        return mst, costo_total
+        zonas_conectadas = set()
+        for zona1, zona2, _ in ruta_optima:
+            zonas_conectadas.add(zona1)
+            zonas_conectadas.add(zona2)
+        
+        print(f"\nRESUMEN:")
+        print(f"  Distancia total de la red: {distancia_total} km")
+        print(f"  Zonas conectadas: {len(zonas_conectadas)} de {len(self.nodos)}")
+        print(f"  Ahorro estimado: {self._calcular_ahorro(distancia_total)} km vs conectar todas las rutas")
+        
+        return ruta_optima, distancia_total
     
-    def kruskal_maximo_consola(self):
-        """Algoritmo de Kruskal para árbol de expansión máxima"""
-        print("=" * 70)
-        print("ALGORITMO DE KRUSKAL - ÁRBOL DE EXPANSIÓN MÁXIMA")
-        print("=" * 70)
+    def _calcular_ahorro(self, distancia_optima):
+        """Calcula el ahorro vs conectar todas las zonas directamente"""
+        distancia_total_posible = 0
+        for zona1 in self.nodos:
+            for zona2, distancia in self.zonas[zona1]:
+                if zona1 < zona2:  # Evitar duplicados
+                    distancia_total_posible += distancia
         
-        # Ordenar aristas en orden descendente
-        aristas_ordenadas = sorted(self.aristas, key=lambda x: x[2], reverse=True)
-        
-        # Inicializar estructuras
-        padre = {nodo: nodo for nodo in self.nodos}
-        rango = {nodo: 0 for nodo in self.nodos}
-        mst = []
-        costo_total = 0
-        
-        print("Aristas ordenadas por peso (mayor a menor):")
-        for i, (u, v, peso) in enumerate(aristas_ordenadas, 1):
-            print(f"  {i}. {u}-{v} (peso: {peso})")
-        print()
-        
-        paso = 1
-        
-        for arista in aristas_ordenadas:
-            u, v, peso = arista
-            
-            print(f"--- PASO {paso} ---")
-            print(f"Procesando arista: {u}-{v} (peso: {peso})")
-            print(f"Conjuntos actuales: {padre}")
-            print(f"Aristas en MST: {mst}")
-            print(f"Costo acumulado: {costo_total}")
-            print()
-            
-            raiz_u = self._encontrar(padre, u)
-            raiz_v = self._encontrar(padre, v)
-            
-            print(f"  Raíz de {u}: {raiz_u}")
-            print(f"  Raíz de {v}: {raiz_v}")
-            
-            if raiz_u != raiz_v:
-                # No forman ciclo, agregar al MST
-                if self._unir(padre, rango, u, v):
-                    mst.append((u, v, peso))
-                    costo_total += peso
-                    print(f"  ✓ AÑADIDA: {u}-{v} al MST")
-                    print(f"  Conjuntos actualizados: {padre}")
-                else:
-                    print(f"  ✗ NO SE PUDO UNIR (error)")
-            else:
-                print(f"  ✗ DESCARTADA: Formaría ciclo")
-            
-            paso += 1
-            print("-" * 50)
-            
-            if len(mst) == len(self.nodos) - 1:
-                print("¡Se alcanzó el número máximo de aristas para el MST!")
-                break
-        
-        # Resultados finales
-        print("\n" + "=" * 70)
-        print("RESULTADOS FINALES - ÁRBOL DE EXPANSIÓN MÁXIMA")
-        print("=" * 70)
-        print("Aristas del MST:")
-        for i, (u, v, peso) in enumerate(mst, 1):
-            print(f"  {i}. {u}-{v} (peso: {peso})")
-        print(f"\nCosto total: {costo_total}")
-        print(f"Nodos conectados: {len(set([nodo for arista in mst for nodo in arista[:2]]))}")
-        
-        return mst, costo_total
+        ahorro = distancia_total_posible - distancia_optima
+        return round(ahorro, 1)
     
-    def visualizar_kruskal(self, mst_min, mst_max, costo_min, costo_max):
-        """Visualización gráfica comparativa de ambos algoritmos"""
+    def visualizar_mapa_delivery(self, ruta_optima, distancia_total):
+        """Visualización del mapa de delivery optimizado"""
         print("\n" + "=" * 70)
-        print("VISUALIZACIÓN GRÁFICA - COMPARATIVA KRUSKAL")
+        print("MAPA DE ZONAS DE REPARTO - RUTA OPTIMIZADA")
         print("=" * 70)
         
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
         
         # Crear grafo completo
         G = nx.Graph()
-        for nodo in self.grafo:
-            G.add_node(nodo)
-            for vecino, peso in self.grafo[nodo]:
-                G.add_edge(nodo, vecino, weight=peso)
+        for zona in self.zonas:
+            G.add_node(zona)
+            for vecino, distancia in self.zonas[zona]:
+                G.add_edge(zona, vecino, weight=distancia)
         
-        pos = nx.spring_layout(G, seed=42)
+        # Posiciones para los nodos (simulando ubicaciones geográficas)
+        pos = nx.spring_layout(G, seed=42, k=3, iterations=50)
         
-        # SUBGRÁFICO 1: Árbol de Expansión Mínima
-        ax1.set_title(f"ÁRBOL DE EXPANSIÓN MÍNIMA\nCosto Total: {costo_min}", 
+        # SUBGRÁFICO 1: Mapa completo (todas las rutas posibles)
+        ax1.set_title("TODAS LAS RUTAS POSIBLES\n(Sin optimizar)", 
+                     fontsize=14, fontweight='bold', color='gray')
+        
+        # Dibujar todas las rutas posibles
+        nx.draw_networkx_nodes(G, pos, ax=ax1, node_size=600, 
+                              node_color='lightblue', alpha=0.8,
+                              edgecolors='blue', linewidths=2)
+        nx.draw_networkx_edges(G, pos, ax=ax1, alpha=0.3, 
+                              edge_color='gray', width=1)
+        nx.draw_networkx_labels(G, pos, ax=ax1, font_size=10, font_weight='bold')
+        
+        # Calcular distancia total sin optimizar
+        dist_total_no_opt = sum(d for _, _, d in self.conexiones)
+        ax1.set_xlabel(f"Distancia total disponible: {dist_total_no_opt} km", fontsize=10)
+        
+        # SUBGRÁFICO 2: Ruta optimizada
+        ax2.set_title(f"RUTA DE DELIVERY OPTIMIZADA\nDistancia total: {distancia_total} km", 
                      fontsize=14, fontweight='bold', color='green')
         
-        # Dibujar grafo completo (fondo)
-        nx.draw_networkx_nodes(G, pos, ax=ax1, node_size=500, 
-                              node_color='lightgray', alpha=0.3)
-        nx.draw_networkx_edges(G, pos, ax=ax1, alpha=0.2, 
-                              edge_color='gray', style='dashed')
-        nx.draw_networkx_labels(G, pos, ax=ax1, font_size=10)
+        # Dibujar todas las zonas
+        nx.draw_networkx_nodes(G, pos, ax=ax2, node_size=600, 
+                              node_color='lightgreen', alpha=0.8,
+                              edgecolors='darkgreen', linewidths=2)
+        nx.draw_networkx_labels(G, pos, ax=ax2, font_size=10, font_weight='bold')
         
-        # Dibujar MST mínimo
-        MST_min = nx.Graph()
-        for u, v, peso in mst_min:
-            MST_min.add_edge(u, v, weight=peso)
+        # Dibujar solo la ruta optimizada
+        G_opt = nx.Graph()
+        for zona1, zona2, distancia in ruta_optima:
+            G_opt.add_edge(zona1, zona2, weight=distancia)
         
-        nx.draw_networkx_edges(MST_min, pos, ax=ax1, width=3, 
-                              edge_color='blue', alpha=0.8)
-        nx.draw_networkx_nodes(G, pos, ax=ax1, nodelist=list(MST_min.nodes()), 
-                              node_size=600, node_color='blue', alpha=0.8)
+        nx.draw_networkx_edges(G_opt, pos, ax=ax2, width=3, 
+                              edge_color='green', alpha=0.9)
         
-        # Etiquetas de pesos para MST mínimo
-        edge_labels_min = {(u, v): f"{d['weight']}" for u, v, d in MST_min.edges(data=True)}
-        nx.draw_networkx_edge_labels(MST_min, pos, ax=ax1, edge_labels=edge_labels_min,
-                                   font_color='darkblue', font_weight='bold')
-        
-        # SUBGRÁFICO 2: Árbol de Expansión Máxima
-        ax2.set_title(f"ÁRBOL DE EXPANSIÓN MÁXIMA\nCosto Total: {costo_max}", 
-                     fontsize=14, fontweight='bold', color='red')
-        
-        # Dibujar grafo completo (fondo)
-        nx.draw_networkx_nodes(G, pos, ax=ax2, node_size=500, 
-                              node_color='lightgray', alpha=0.3)
-        nx.draw_networkx_edges(G, pos, ax=ax2, alpha=0.2, 
-                              edge_color='gray', style='dashed')
-        nx.draw_networkx_labels(G, pos, ax=ax2, font_size=10)
-        
-        # Dibujar MST máximo
-        MST_max = nx.Graph()
-        for u, v, peso in mst_max:
-            MST_max.add_edge(u, v, weight=peso)
-        
-        nx.draw_networkx_edges(MST_max, pos, ax=ax2, width=3, 
-                              edge_color='red', alpha=0.8)
-        nx.draw_networkx_nodes(G, pos, ax=ax2, nodelist=list(MST_max.nodes()), 
-                              node_size=600, node_color='red', alpha=0.8)
-        
-        # Etiquetas de pesos para MST máximo
-        edge_labels_max = {(u, v): f"{d['weight']}" for u, v, d in MST_max.edges(data=True)}
-        nx.draw_networkx_edge_labels(MST_max, pos, ax=ax2, edge_labels=edge_labels_max,
-                                   font_color='darkred', font_weight='bold')
+        # Etiquetas de distancias para la ruta optimizada
+        edge_labels = {(z1, z2): f"{d} km" for z1, z2, d in ruta_optima}
+        nx.draw_networkx_edge_labels(G_opt, pos, ax=ax2, 
+                                     edge_labels=edge_labels,
+                                     font_color='darkgreen', 
+                                     font_size=9,
+                                     font_weight='bold')
         
         # Configuración final
         for ax in [ax1, ax2]:
             ax.set_axis_off()
         
+        # Información adicional
+        ahorro = self._calcular_ahorro(distancia_total)
+        info_text = f"Ahorro estimado: {ahorro} km\n"
+        info_text += f"Eficiencia: {round((1 - distancia_total/dist_total_no_opt)*100, 1)}%"
+        
+        plt.figtext(0.5, 0.02, info_text, 
+                   fontsize=12, ha='center',
+                   bbox=dict(boxstyle="round", facecolor='lightyellow', 
+                           edgecolor='gray', alpha=0.9))
+        
         plt.tight_layout()
         plt.show()
-        
-        # Mostrar comparativa
-        print("\nCOMPARATIVA FINAL:")
-        print(f"Árbol Mínimo - Costo: {costo_min}")
-        print(f"Árbol Máximo - Costo: {costo_max}")
-        print(f"Diferencia: {abs(costo_max - costo_min)}")
 
-# Funciones para crear grafos de ejemplo
-def crear_grafo_pequeno():
-    """Grafo pequeño para demostración básica"""
+def crear_zonas_residenciales():
+    """Crea un mapa de zonas residenciales con distancias realistas"""
     return {
-        'A': [('B', 4), ('C', 2)],
-        'B': [('A', 4), ('C', 1), ('D', 5)],
-        'C': [('A', 2), ('B', 1), ('D', 8)],
-        'D': [('B', 5), ('C', 8)]
+        'NORTE': [('CENTRO', 5.2), ('ESTE', 4.8), ('OESTE', 6.1)],
+        'SUR': [('CENTRO', 4.5), ('ESTE', 7.3), ('OESTE', 3.9)],
+        'ESTE': [('CENTRO', 3.8), ('NORTE', 4.8), ('SUR', 7.3)],
+        'OESTE': [('CENTRO', 4.2), ('NORTE', 6.1), ('SUR', 3.9)],
+        'CENTRO': [('NORTE', 5.2), ('SUR', 4.5), ('ESTE', 3.8), ('OESTE', 4.2)]
     }
 
-def crear_grafo_medio():
-    """Grafo medio para demostración más compleja"""
+def crear_barrios_ciudad():
+    """Crea un mapa más detallado de barrios de una ciudad"""
     return {
-        'A': [('B', 7), ('D', 5)],
-        'B': [('A', 7), ('C', 8), ('D', 9), ('E', 7)],
-        'C': [('B', 8), ('E', 5)],
-        'D': [('A', 5), ('B', 9), ('E', 15), ('F', 6)],
-        'E': [('B', 7), ('C', 5), ('D', 15), ('F', 8)],
-        'F': [('D', 6), ('E', 8)]
+        'CENTRO': [('NORTE', 4.5), ('SUR', 5.2), ('ESTE', 3.8), ('OESTE', 4.0)],
+        'NORTE': [('CENTRO', 4.5), ('INDUSTRIAL', 6.2), ('RESIDENCIAL_A', 2.8)],
+        'SUR': [('CENTRO', 5.2), ('PLAYA', 3.5), ('RESIDENCIAL_B', 4.1)],
+        'ESTE': [('CENTRO', 3.8), ('UNIVERSIDAD', 2.5), ('PARQUE', 3.3)],
+        'OESTE': [('CENTRO', 4.0), ('SHOPPING', 2.2), ('RESIDENCIAL_C', 3.7)],
+        'INDUSTRIAL': [('NORTE', 6.2), ('PUERTO', 5.8)],
+        'PLAYA': [('SUR', 3.5), ('RESIDENCIAL_B', 2.9)],
+        'UNIVERSIDAD': [('ESTE', 2.5), ('PARQUE', 1.8)],
+        'PARQUE': [('ESTE', 3.3), ('UNIVERSIDAD', 1.8)],
+        'SHOPPING': [('OESTE', 2.2), ('RESIDENCIAL_C', 2.5)],
+        'RESIDENCIAL_A': [('NORTE', 2.8)],
+        'RESIDENCIAL_B': [('SUR', 4.1), ('PLAYA', 2.9)],
+        'RESIDENCIAL_C': [('OESTE', 3.7), ('SHOPPING', 2.5)],
+        'PUERTO': [('INDUSTRIAL', 5.8)]
     }
 
-def crear_grafo_complejo():
-    """Grafo complejo con más nodos y conexiones"""
+def crear_zonas_comerciales():
+    """Crea un mapa de zonas comerciales para delivery de comercios"""
     return {
-        'A': [('B', 4), ('C', 2), ('F', 3)],
-        'B': [('A', 4), ('C', 1), ('D', 5), ('E', 6)],
-        'C': [('A', 2), ('B', 1), ('D', 8), ('F', 7)],
-        'D': [('B', 5), ('C', 8), ('E', 2), ('G', 4)],
-        'E': [('B', 6), ('D', 2), ('F', 3), ('G', 5)],
-        'F': [('A', 3), ('C', 7), ('E', 3), ('G', 6)],
-        'G': [('D', 4), ('E', 5), ('F', 6)]
+        'MERCADO': [('RESTAURANTES', 2.3), ('OFICINAS', 3.5), ('TIENDAS', 2.8)],
+        'RESTAURANTES': [('MERCADO', 2.3), ('OFICINAS', 1.5), ('BARES', 1.2)],
+        'OFICINAS': [('MERCADO', 3.5), ('RESTAURANTES', 1.5), ('TIENDAS', 2.1), ('BANCOS', 1.8)],
+        'TIENDAS': [('MERCADO', 2.8), ('OFICINAS', 2.1), ('CENTRO_COMERCIAL', 3.0)],
+        'BARES': [('RESTAURANTES', 1.2), ('CENTRO_COMERCIAL', 2.5)],
+        'BANCOS': [('OFICINAS', 1.8), ('CENTRO_COMERCIAL', 2.2)],
+        'CENTRO_COMERCIAL': [('TIENDAS', 3.0), ('BARES', 2.5), ('BANCOS', 2.2)]
     }
 
 def main():
     """Función principal con menú interactivo"""
-    print("SIMULADOR DEL ALGORITMO DE KRUSKAL")
-    print("Árbol de Expansión Mínima y Máxima")
+    print("OPTIMIZADOR DE RUTAS DE DELIVERY")
+    print("Sistema para encontrar la red de rutas más eficiente")
     print()
     
-    # Selección de grafo
-    print("Seleccione el grafo de ejemplo:")
-    print("1. Grafo pequeño (4 nodos)")
-    print("2. Grafo medio (6 nodos)") 
-    print("3. Grafo complejo (7 nodos)")
+    # Selección del mapa
+    print("Seleccione el tipo de zona:")
+    print("1. Zonas residenciales básicas (5 zonas)")
+    print("2. Barrios de ciudad (14 zonas)")
+    print("3. Zonas comerciales (7 zonas)")
     
-    opcion_grafo = input("Opción (1-3): ").strip()
+    opcion_mapa = input("Opción (1-3): ").strip()
     
-    if opcion_grafo == '1':
-        grafo = crear_grafo_pequeno()
-    elif opcion_grafo == '2':
-        grafo = crear_grafo_medio()
+    if opcion_mapa == '1':
+        zonas = crear_zonas_residenciales()
+        tipo = "residenciales básicas"
+    elif opcion_mapa == '2':
+        zonas = crear_barrios_ciudad()
+        tipo = "barrios de ciudad"
     else:
-        grafo = crear_grafo_complejo()
+        zonas = crear_zonas_comerciales()
+        tipo = "comerciales"
     
-    simulador = KruskalSimulator(grafo)
+    optimizador = DeliveryOptimizer(zonas)
     
     while True:
-        print("\n" + "=" * 50)
-        print("MENÚ PRINCIPAL - ALGORITMO DE KRUSKAL")
+        print(f"\n" + "=" * 50)
+        print(f"MENÚ - OPTIMIZADOR DE DELIVERY ({tipo})")
         print("=" * 50)
-        print("1. Ejecutar Kruskal Mínimo (consola)")
-        print("2. Ejecutar Kruskal Máximo (consola)")
-        print("3. Ejecutar ambos y comparar (con gráficos)")
-        print("4. Mostrar grafo completo")
+        print("1. Calcular ruta de delivery óptima")
+        print("2. Ver mapa de rutas optimizado")
+        print("3. Ver todas las zonas disponibles")
+        print("4. Cambiar tipo de zona")
         print("5. Salir")
         
         opcion = input("\nSeleccione opción (1-5): ").strip()
         
         if opcion == '1':
             print()
-            mst_min, costo_min = simulador.kruskal_minimo_consola()
+            ruta_optima, distancia_total = optimizador.ruta_delivery_optima()
             
         elif opcion == '2':
             print()
-            mst_max, costo_max = simulador.kruskal_maximo_consola()
+            ruta_optima, distancia_total = optimizador.ruta_delivery_optima()
+            optimizador.visualizar_mapa_delivery(ruta_optima, distancia_total)
             
         elif opcion == '3':
-            print("\nEjecutando ambos algoritmos...")
-            print()
-            mst_min, costo_min = simulador.kruskal_minimo_consola()
-            print("\n" + "="*70)
-            mst_max, costo_max = simulador.kruskal_maximo_consola()
-            simulador.visualizar_kruskal(mst_min, mst_max, costo_min, costo_max)
+            print("\nZONAS DE REPARTO DISPONIBLES:")
+            print("Zona | Conexiones (zona - distancia en km)")
+            print("-" * 50)
+            
+            for zona, conexiones in sorted(zonas.items()):
+                print(f"{zona}:")
+                for vecino, distancia in sorted(conexiones):
+                    print(f"  → {vecino}: {distancia} km")
+                print()
+            
+            print(f"Total de zonas: {len(zonas)}")
+            print(f"Total de rutas posibles: {len(optimizador.conexiones)}")
             
         elif opcion == '4':
-            print("\nGRAFO COMPLETO:")
-            print("Nodos y conexiones:")
-            for nodo, conexiones in grafo.items():
-                print(f"  {nodo}: {conexiones}")
-            print(f"\nTotal de nodos: {len(grafo)}")
-            print(f"Total de aristas únicas: {len(simulador.aristas)}")
+            print("\nVolviendo al menú de selección de zonas...")
+            return main()
             
         elif opcion == '5':
-            print("Saliendo del simulador...")
+            print("Gracias por usar el optimizador de delivery. ¡Hasta pronto!")
             break
             
         else:
