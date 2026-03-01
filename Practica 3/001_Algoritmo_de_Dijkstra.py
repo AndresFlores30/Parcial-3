@@ -3,18 +3,19 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-class TronDijkstraSimulator:
+class CineDijkstraSimulator:
     def __init__(self, grafo):
         # Constructor: inicializa el simulador con un grafo dado
         self.grafo = grafo  # Almacena la estructura del sistema (nodos y conexiones)
         self.nodos = list(grafo.keys())  # Lista de todos los nodos del sistema
         
-    def dijkstra_consola(self, inicio):
+    def dijkstra_consola(self, inicio, destino_cine):
         # Implementa el algoritmo de Dijkstra mostrando paso a paso en consola
         print("=" * 60)
-        print("TRON - SIMULADOR DE RUTAS OPTIMAS")
+        print("CINE - SIMULADOR DE RUTAS AL CINE")
         print("=" * 60)
-        print(f"Light Cycle inicial: {inicio}")
+        print(f"Punto de partida: {inicio}")
+        print(f"Destino (Cine): {destino_cine}")
         print()
         
         # INICIALIZACIÓN DEL ALGORITMO
@@ -32,44 +33,50 @@ class TronDijkstraSimulator:
         while cola:
             # Mostrar estado actual del algoritmo
             print(f"--- CICLO DE PROCESAMIENTO {paso} ---")
-            print(f"Cola de prioridad del sistema: {cola}")
-            print(f"Energia actual en nodos: {distancias}")
+            print(f"Cola de prioridad: {cola}")
+            print(f"Distancias actuales: {distancias}")
             print(f"Nodos procesados: {visitados}")
             print()
             
             # Extraer el nodo con menor distancia de la cola de prioridad
-            energia_actual, nodo_actual = heapq.heappop(cola)
+            distancia_actual, nodo_actual = heapq.heappop(cola)
             
             # Si el nodo ya fue visitado, saltar a la siguiente iteración
             if nodo_actual in visitados:
                 print(f"  Nodo {nodo_actual} ya procesado, continuando...")
                 print()
                 continue
+            
+            # Verificar si llegamos al cine
+            if nodo_actual == destino_cine:
+                print(f"¡LLEGAMOS AL CINE! Nodo: {nodo_actual}")
+                print(f"Distancia total recorrida: {distancia_actual} minutos")
+                break
                 
             # Procesar el nodo actual
-            print(f"Procesando nodo: {nodo_actual} (energia consumida: {energia_actual})")
+            print(f"Procesando nodo: {nodo_actual} (distancia recorrida: {distancia_actual} min)")
             visitados.add(nodo_actual)  # Marcar como visitado
             
             # EXPLORAR VECINOS DEL NODO ACTUAL
-            for conexion, consumo in self.grafo[nodo_actual]:
+            for conexion, tiempo in self.grafo[nodo_actual]:
                 # Saltar vecinos ya visitados
                 if conexion in visitados:
                     continue
                     
                 # Calcular nueva distancia tentativa
-                nueva_energia = energia_actual + consumo
-                print(f"  Conexion detectada: {conexion}, consumo de energia: {consumo}")
-                print(f"  Energia actual en {conexion}: {distancias[conexion]}")
-                print(f"  Nueva energia calculada: {nueva_energia}")
+                nueva_distancia = distancia_actual + tiempo
+                print(f"  Conexion encontrada: {conexion}, tiempo de viaje: {tiempo} min")
+                print(f"  Tiempo actual a {conexion}: {distancias[conexion]} min")
+                print(f"  Nuevo tiempo calculado: {nueva_distancia} min")
                 
                 # ACTUALIZAR DISTANCIAS SI ENCONTRAMOS UN CAMINO MÁS CORTO
-                if nueva_energia < distancias[conexion]:
-                    distancias[conexion] = nueva_energia
+                if nueva_distancia < distancias[conexion]:
+                    distancias[conexion] = nueva_distancia
                     predecesores[conexion] = nodo_actual
-                    heapq.heappush(cola, (nueva_energia, conexion))
-                    print(f"  SISTEMA ACTUALIZADO: {conexion} = {nueva_energia}")
+                    heapq.heappush(cola, (nueva_distancia, conexion))
+                    print(f"  RUTA ACTUALIZADA: {conexion} = {nueva_distancia} min")
                 else:
-                    print(f"  MANTENIENDO CONFIGURACION ACTUAL")
+                    print(f"  MANTENIENDO RUTA ACTUAL (más larga o igual)")
                 print()
             
             paso += 1
@@ -77,12 +84,18 @@ class TronDijkstraSimulator:
         
         # MOSTRAR RESULTADOS FINALES
         print("\n" + "=" * 60)
-        print("ANALISIS FINAL DEL SISTEMA TRON")
+        print("RESULTADO FINAL - RUTA AL CINE")
         print("=" * 60)
-        for nodo in self.nodos:
-            # Reconstruir y mostrar la ruta óptima para cada nodo
-            ruta = self._reconstruir_ruta(predecesores, inicio, nodo)
-            print(f"Nodo {nodo}: Energia = {distancias[nodo]}, Ruta = {ruta}")
+        
+        # Reconstruir y mostrar la ruta óptima al cine
+        ruta_cine = self._reconstruir_ruta(predecesores, inicio, destino_cine)
+        if ruta_cine[0] == inicio and destino_cine in ruta_cine:
+            print(f"Ruta más corta al cine '{destino_cine}':")
+            print(f"  Recorrido: {' → '.join(ruta_cine)}")
+            print(f"  Tiempo total: {distancias[destino_cine]} minutos")
+            print(f"  Número de paradas: {len(ruta_cine)-1}")
+        else:
+            print(f"No se encontró una ruta desde {inicio} hasta el cine {destino_cine}")
         
         return distancias, predecesores
     
@@ -99,90 +112,96 @@ class TronDijkstraSimulator:
         ruta.reverse()  # Invertir para tener la ruta en orden correcto
         
         # Verificar que la ruta comienza en el nodo inicial
-        return ruta if ruta[0] == inicio else "Ruta no disponible"
+        return ruta if ruta and ruta[0] == inicio else [inicio, "Ruta no disponible"]
     
-    def dijkstra_grafico(self, inicio, destino=None):
-        # Versión gráfica del algoritmo con visualización estilo Tron
+    def dijkstra_grafico(self, inicio, destino_cine):
+        # Versión gráfica del algoritmo con visualización
         print("\n" + "=" * 60)
-        print("TRON - VISUALIZACION DEL SISTEMA")
+        print("CINE - VISUALIZACIÓN DE RUTAS")
         print("=" * 60)
         
         # Ejecutar Dijkstra para obtener distancias y predecesores
-        distancias, predecesores = self.dijkstra_consola(inicio)
+        distancias, predecesores = self.dijkstra_consola(inicio, destino_cine)
         
         # CONFIGURACIÓN DE LA VISUALIZACIÓN
         plt.figure(figsize=(14, 10))
         G = nx.Graph()  # Crear grafo de NetworkX
         
-        # Estilo visual Tron (fondo negro)
+        # Estilo visual cine (fondo oscuro)
         plt.style.use('dark_background')
         fig = plt.gcf()
-        fig.patch.set_facecolor('black')
+        fig.patch.set_facecolor('#1a1a1a')
         
         # CONSTRUIR EL GRAFO VISUAL
         # Agregar nodos y aristas al grafo de NetworkX
         for nodo in self.grafo:
             G.add_node(nodo)
-            for conexion, consumo in self.grafo[nodo]:
-                G.add_edge(nodo, conexion, weight=consumo)
+            for conexion, tiempo in self.grafo[nodo]:
+                G.add_edge(nodo, conexion, weight=tiempo)
         
         # Calcular posiciones de los nodos para el diseño
-        pos = nx.spring_layout(G, seed=42)  # seed para reproducibilidad
+        pos = nx.spring_layout(G, seed=42, k=2, iterations=50)
         
         # DIBUJAR ELEMENTOS DEL GRAFO
         
-        # Nodos: cian con bordes blancos
-        nx.draw_networkx_nodes(G, pos, node_size=800, 
-                              node_color='#00FFFF', alpha=0.8,
-                              edgecolors='#FFFFFF', linewidths=2)
+        # Nodos regulares: color amarillo suave
+        nodos_regulares = [n for n in self.nodos if n != destino_cine]
+        nx.draw_networkx_nodes(G, pos, nodelist=nodos_regulares, 
+                              node_size=800, node_color='#FFD700', 
+                              alpha=0.8, edgecolors='#FFFFFF', linewidths=2)
         
-        # Aristas: verde neón con estilo discontinuo
-        nx.draw_networkx_edges(G, pos, alpha=0.6, 
-                              edge_color='#00FF00', width=2,
-                              style='dashed')
+        # Nodo del cine: color rojo brillante (destacado)
+        nx.draw_networkx_nodes(G, pos, nodelist=[destino_cine], 
+                              node_size=1000, node_color='#FF4444', 
+                              alpha=0.9, edgecolors='#FFFFFF', linewidths=3)
         
-        # Etiquetas de nodos: estilo caja azul con texto en monoespaciado
-        nx.draw_networkx_labels(G, pos, font_size=10, 
-                               font_weight='bold', 
-                               font_family='monospace',
+        # Aristas: color azul claro
+        nx.draw_networkx_edges(G, pos, alpha=0.5, edge_color='#87CEEB', 
+                              width=2, style='solid')
+        
+        # Etiquetas de nodos
+        nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold', 
+                               font_family='sans-serif',
                                bbox=dict(boxstyle="round,pad=0.3", 
-                                       facecolor='#003366', 
-                                       edgecolor='#00FFFF',
+                                       facecolor='#333333', 
+                                       edgecolor='#FFD700',
                                        alpha=0.8))
         
-        # Etiquetas de pesos en las aristas
-        edge_labels = {(u, v): f"{d['weight']}" for u, v, d in G.edges(data=True)}
+        # Etiquetas de pesos en las aristas (tiempo en minutos)
+        edge_labels = {(u, v): f"{d['weight']} min" for u, v, d in G.edges(data=True)}
         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels,
-                                   font_color='#FFFF00',
+                                   font_color='#FFFFFF',
                                    font_size=8,
                                    bbox=dict(boxstyle="round", 
-                                           facecolor='black', 
-                                           edgecolor='#FFFF00',
+                                           facecolor='#444444', 
+                                           edgecolor='#87CEEB',
                                            alpha=0.8))
         
-        # RESALTAR RUTA ÓPTIMA SI SE ESPECIFICA DESTINO
-        if destino:
-            ruta = self._reconstruir_ruta(predecesores, inicio, destino)
-            if len(ruta) > 1:
-                # Crear lista de aristas que forman la ruta óptima
-                edges_ruta = [(ruta[i], ruta[i+1]) for i in range(len(ruta)-1)]
-                
-                # Dibujar ruta óptima en magenta
-                nx.draw_networkx_edges(G, pos, edgelist=edges_ruta, 
-                                     width=4, alpha=0.9, edge_color='#FF00FF')
-                nx.draw_networkx_nodes(G, pos, nodelist=ruta, 
-                                     node_size=1000, node_color='#FF00FF')
+        # RESALTAR RUTA ÓPTIMA AL CINE
+        ruta_cine = self._reconstruir_ruta(predecesores, inicio, destino_cine)
+        if len(ruta_cine) > 1 and ruta_cine[-1] == destino_cine:
+            # Crear lista de aristas que forman la ruta óptima
+            edges_ruta = [(ruta_cine[i], ruta_cine[i+1]) for i in range(len(ruta_cine)-1)]
+            
+            # Dibujar ruta óptima en verde brillante
+            nx.draw_networkx_edges(G, pos, edgelist=edges_ruta, 
+                                 width=4, alpha=0.9, edge_color='#32CD32')
+            
+            # Resaltar nodos de la ruta
+            nx.draw_networkx_nodes(G, pos, nodelist=ruta_cine, 
+                                 node_size=900, node_color='#32CD32', alpha=0.7)
         
         # CONFIGURACIÓN FINAL DEL GRÁFICO
-        plt.title(f"SISTEMA TRON - Light Cycle: {inicio}\nRuta de Minima Energia", 
-                 fontsize=16, fontweight='bold', color='#00FFFF', 
-                 fontfamily='monospace', pad=20)
+        tiempo_total = distancias[destino_cine] if destino_cine in distancias else "?"
+        titulo = f"RUTA AL CINE\n{inicio} → {destino_cine} | Tiempo: {tiempo_total} minutos"
+        plt.title(titulo, fontsize=16, fontweight='bold', color='#FFD700', 
+                 fontfamily='sans-serif', pad=20)
         
         # Añadir leyenda explicativa
-        legend_text = "Nodos: Estaciones de Energia\nLineas: Conexiones del Sistema\nMagenta: Ruta Optima"
-        plt.figtext(0.02, 0.02, legend_text, fontsize=10, color='#00FF00',
-                   bbox=dict(boxstyle="round", facecolor='#002244', 
-                           edgecolor='#00FFFF', alpha=0.8))
+        leyenda = "● Nodos: Intersecciones\n★ CINE: Destino final\n🟢 Verde: Ruta más corta\n--- Tiempos en minutos"
+        plt.figtext(0.02, 0.02, leyenda, fontsize=10, color='#FFFFFF',
+                   bbox=dict(boxstyle="round", facecolor='#222222', 
+                           edgecolor='#FFD700', alpha=0.9))
         
         plt.axis('off')  # Ocultar ejes
         plt.tight_layout()
@@ -190,68 +209,89 @@ class TronDijkstraSimulator:
         
         return distancias, predecesores
 
-# Grafo temático de Tron
-def crear_sistema_tron():
-    # Define la topología del sistema Tron con nombres temáticos
-    # Estructura: nodo: [(vecino, peso), (vecino, peso), ...]
-    sistema_tron = {
-        'CPU_CENTRAL': [('SECTOR_ALPHA', 4), ('RED_PRINCIPAL', 2)],
-        'SECTOR_ALPHA': [('CPU_CENTRAL', 4), ('RED_PRINCIPAL', 1), ('TORRE_BETA', 5)],
-        'RED_PRINCIPAL': [('CPU_CENTRAL', 2), ('SECTOR_ALPHA', 1), ('TORRE_BETA', 8), ('NODO_GAMMA', 10)],
-        'TORRE_BETA': [('SECTOR_ALPHA', 5), ('RED_PRINCIPAL', 8), ('NODO_GAMMA', 2), ('TERMINAL_OMEGA', 6)],
-        'NODO_GAMMA': [('RED_PRINCIPAL', 10), ('TORRE_BETA', 2), ('TERMINAL_OMEGA', 3)],
-        'TERMINAL_OMEGA': [('TORRE_BETA', 6), ('NODO_GAMMA', 3)]
+# Grafo de la ciudad con cines
+def crear_mapa_ciudad():
+    # Define la topología de la ciudad con nombres de lugares
+    # Los valores representan minutos de viaje entre ubicaciones
+    mapa_ciudad = {
+        'PLAZA_CENTRAL': [('MERCADO', 5), ('ESTACION_TREN', 8), ('PARQUE', 3)],
+        'MERCADO': [('PLAZA_CENTRAL', 5), ('BIBLIOTECA', 4), ('CINE_ALPHA', 7)],
+        'ESTACION_TREN': [('PLAZA_CENTRAL', 8), ('UNIVERSIDAD', 6), ('CINE_BETA', 10)],
+        'PARQUE': [('PLAZA_CENTRAL', 3), ('BIBLIOTECA', 2), ('ESTADIO', 5)],
+        'BIBLIOTECA': [('MERCADO', 4), ('PARQUE', 2), ('UNIVERSIDAD', 3)],
+        'UNIVERSIDAD': [('ESTACION_TREN', 6), ('BIBLIOTECA', 3), ('CINE_BETA', 4)],
+        'ESTADIO': [('PARQUE', 5), ('CINE_ALPHA', 6), ('CINE_BETA', 7)],
+        'CINE_ALPHA': [('MERCADO', 7), ('ESTADIO', 6)],  # Cine 1
+        'CINE_BETA': [('ESTACION_TREN', 10), ('UNIVERSIDAD', 4), ('ESTADIO', 7)]  # Cine 2
     }
-    return sistema_tron
+    return mapa_ciudad
 
 def main():
     # Función principal que maneja la interfaz de usuario
-    # Crear sistema Tron con la topología definida
-    sistema_tron = crear_sistema_tron()
+    # Crear mapa de la ciudad
+    mapa_ciudad = crear_mapa_ciudad()
+    
+    # Lista de cines disponibles
+    cines_disponibles = ['CINE_ALPHA', 'CINE_BETA']
     
     # Inicializar simulador
-    simulador = TronDijkstraSimulator(sistema_tron)
+    simulador = CineDijkstraSimulator(mapa_ciudad)
     
     # BUCLE PRINCIPAL DE LA INTERFAZ
     while True:
         print("\n" + "=" * 60)
-        print("SISTEMA DE NAVEGACION TRON")
+        print("SISTEMA DE RUTAS AL CINE")
         print("=" * 60)
-        print("1. Ejecutar analisis de ruta (modo consola)")
-        print("2. Visualizar sistema de energia")
+        print("1. Buscar ruta al cine (modo consola)")
+        print("2. Visualizar mapa y ruta al cine")
         print("3. Salir del sistema")
         
         opcion = input("\nSeleccione opcion (1-3): ").strip()
         
         # OPCIÓN 1: Modo consola (solo texto)
         if opcion == '1':
-            print("\nEstaciones disponibles:", list(sistema_tron.keys()))
-            inicio = input("Ingrese estacion inicial: ").strip().upper()
-            if inicio in sistema_tron:
-                simulador.dijkstra_consola(inicio)
+            print("\nUbicaciones disponibles:", list(mapa_ciudad.keys()))
+            print("Cines disponibles:", cines_disponibles)
+            
+            inicio = input("Ingrese punto de partida: ").strip().upper()
+            if inicio in mapa_ciudad:
+                print("\nCines disponibles:")
+                for i, cine in enumerate(cines_disponibles, 1):
+                    print(f"  {i}. {cine}")
+                
+                cine_opcion = input("Ingrese nombre del cine destino: ").strip().upper()
+                if cine_opcion in mapa_ciudad:
+                    simulador.dijkstra_consola(inicio, cine_opcion)
+                else:
+                    print("Cine no válido")
             else:
-                print("Estacion no valida en el sistema Tron")
+                print("Ubicación no válida")
                 
         # OPCIÓN 2: Modo gráfico con visualización
         elif opcion == '2':
-            print("\nEstaciones disponibles:", list(sistema_tron.keys()))
-            inicio = input("Ingrese estacion inicial: ").strip().upper()
-            destino = input("Ingrese estacion destino (opcional): ").strip().upper()
+            print("\nUbicaciones disponibles:", list(mapa_ciudad.keys()))
+            print("Cines disponibles:", cines_disponibles)
             
-            if inicio in sistema_tron:
-                if destino and destino in sistema_tron:
-                    simulador.dijkstra_grafico(inicio, destino)
+            inicio = input("Ingrese punto de partida: ").strip().upper()
+            if inicio in mapa_ciudad:
+                print("\nCines disponibles:")
+                for i, cine in enumerate(cines_disponibles, 1):
+                    print(f"  {i}. {cine}")
+                
+                cine_opcion = input("Ingrese nombre del cine destino: ").strip().upper()
+                if cine_opcion in mapa_ciudad:
+                    simulador.dijkstra_grafico(inicio, cine_opcion)
                 else:
-                    simulador.dijkstra_grafico(inicio)
+                    print("Cine no válido")
             else:
-                print("Estacion no valida en el sistema Tron")
+                print("Ubicación no válida")
                 
         # OPCIÓN 3: Salir del programa
         elif opcion == '3':
-            print("Desconectando del sistema Tron...")
+            print("Disfrute su película")
             break
         else:
-            print("Opcion no reconocida por el sistema")
+            print("Opción no válida")
 
 if __name__ == "__main__":
     # Punto de entrada del programa
