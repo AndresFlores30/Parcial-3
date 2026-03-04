@@ -48,7 +48,6 @@ class DeliveryOptimizer:
         print("Buscando la conexión más eficiente entre zonas de reparto")
         print()
         
-        # Inicializar estructuras
         conexiones_ordenadas = self.conexiones.copy()
         padre = {zona: zona for zona in self.nodos}
         rango = {zona: 0 for zona in self.nodos}
@@ -78,7 +77,6 @@ class DeliveryOptimizer:
             print(f"  Grupo de {zona2}: {raiz2}")
             
             if raiz1 != raiz2:
-                # No forman ciclo, se puede agregar a la ruta
                 if self._unir(padre, rango, zona1, zona2):
                     ruta_optima.append((zona1, zona2, distancia))
                     distancia_total += distancia
@@ -96,7 +94,6 @@ class DeliveryOptimizer:
                 print("¡Se ha encontrado la red de conexiones óptima!")
                 break
         
-        # Resultados finales
         print("\n" + "=" * 70)
         print("RUTA DE DELIVERY OPTIMIZADA")
         print("=" * 70)
@@ -121,7 +118,7 @@ class DeliveryOptimizer:
         distancia_total_posible = 0
         for zona1 in self.nodos:
             for zona2, distancia in self.zonas[zona1]:
-                if zona1 < zona2:  # Evitar duplicados
+                if zona1 < zona2:
                     distancia_total_posible += distancia
         
         ahorro = distancia_total_posible - distancia_optima
@@ -135,21 +132,17 @@ class DeliveryOptimizer:
         
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
         
-        # Crear grafo completo
         G = nx.Graph()
         for zona in self.zonas:
             G.add_node(zona)
             for vecino, distancia in self.zonas[zona]:
                 G.add_edge(zona, vecino, weight=distancia)
         
-        # Posiciones para los nodos (simulando ubicaciones geográficas)
         pos = nx.spring_layout(G, seed=42, k=3, iterations=50)
         
-        # SUBGRÁFICO 1: Mapa completo (todas las rutas posibles)
         ax1.set_title("TODAS LAS RUTAS POSIBLES\n(Sin optimizar)", 
                      fontsize=14, fontweight='bold', color='gray')
         
-        # Dibujar todas las rutas posibles
         nx.draw_networkx_nodes(G, pos, ax=ax1, node_size=600, 
                               node_color='lightblue', alpha=0.8,
                               edgecolors='blue', linewidths=2)
@@ -157,21 +150,17 @@ class DeliveryOptimizer:
                               edge_color='gray', width=1)
         nx.draw_networkx_labels(G, pos, ax=ax1, font_size=10, font_weight='bold')
         
-        # Calcular distancia total sin optimizar
         dist_total_no_opt = sum(d for _, _, d in self.conexiones)
         ax1.set_xlabel(f"Distancia total disponible: {dist_total_no_opt} km", fontsize=10)
         
-        # SUBGRÁFICO 2: Ruta optimizada
         ax2.set_title(f"RUTA DE DELIVERY OPTIMIZADA\nDistancia total: {distancia_total} km", 
                      fontsize=14, fontweight='bold', color='green')
         
-        # Dibujar todas las zonas
         nx.draw_networkx_nodes(G, pos, ax=ax2, node_size=600, 
                               node_color='lightgreen', alpha=0.8,
                               edgecolors='darkgreen', linewidths=2)
         nx.draw_networkx_labels(G, pos, ax=ax2, font_size=10, font_weight='bold')
         
-        # Dibujar solo la ruta optimizada
         G_opt = nx.Graph()
         for zona1, zona2, distancia in ruta_optima:
             G_opt.add_edge(zona1, zona2, weight=distancia)
@@ -179,7 +168,6 @@ class DeliveryOptimizer:
         nx.draw_networkx_edges(G_opt, pos, ax=ax2, width=3, 
                               edge_color='green', alpha=0.9)
         
-        # Etiquetas de distancias para la ruta optimizada
         edge_labels = {(z1, z2): f"{d} km" for z1, z2, d in ruta_optima}
         nx.draw_networkx_edge_labels(G_opt, pos, ax=ax2, 
                                      edge_labels=edge_labels,
@@ -187,11 +175,9 @@ class DeliveryOptimizer:
                                      font_size=9,
                                      font_weight='bold')
         
-        # Configuración final
         for ax in [ax1, ax2]:
             ax.set_axis_off()
         
-        # Información adicional
         ahorro = self._calcular_ahorro(distancia_total)
         info_text = f"Ahorro estimado: {ahorro} km\n"
         info_text += f"Eficiencia: {round((1 - distancia_total/dist_total_no_opt)*100, 1)}%"
@@ -204,46 +190,52 @@ class DeliveryOptimizer:
         plt.tight_layout()
         plt.show()
 
+
+# ==========================================================
+# MAPAS (solo nombres cambiados a Guadalajara, México)
+# ==========================================================
+
 def crear_zonas_residenciales():
-    """Crea un mapa de zonas residenciales con distancias realistas"""
+    """Mapa simple con 5 zonas grandes de la ZMG (Guadalajara)"""
     return {
-        'NORTE': [('CENTRO', 5.2), ('ESTE', 4.8), ('OESTE', 6.1)],
-        'SUR': [('CENTRO', 4.5), ('ESTE', 7.3), ('OESTE', 3.9)],
-        'ESTE': [('CENTRO', 3.8), ('NORTE', 4.8), ('SUR', 7.3)],
-        'OESTE': [('CENTRO', 4.2), ('NORTE', 6.1), ('SUR', 3.9)],
-        'CENTRO': [('NORTE', 5.2), ('SUR', 4.5), ('ESTE', 3.8), ('OESTE', 4.2)]
+        'GUADALAJARA_CENTRO': [('ZAPOPAN_CENTRO', 5.2), ('TLAQUEPAQUE_CENTRO', 4.8), ('TONALA_CENTRO', 6.1)],
+        'TLAJOMULCO_CENTRO': [('GUADALAJARA_CENTRO', 4.5), ('TONALA_CENTRO', 7.3), ('ZAPOPAN_CENTRO', 3.9)],
+        'TONALA_CENTRO': [('GUADALAJARA_CENTRO', 3.8), ('ZAPOPAN_CENTRO', 4.8), ('TLAJOMULCO_CENTRO', 7.3)],
+        'ZAPOPAN_CENTRO': [('GUADALAJARA_CENTRO', 4.2), ('TONALA_CENTRO', 6.1), ('TLAJOMULCO_CENTRO', 3.9)],
+        'GUADALAJARA_CENTRO': [('ZAPOPAN_CENTRO', 5.2), ('TLAJOMULCO_CENTRO', 4.5), ('TONALA_CENTRO', 3.8), ('TLAQUEPAQUE_CENTRO', 4.2)]
     }
 
 def crear_barrios_ciudad():
-    """Crea un mapa más detallado de barrios de una ciudad"""
+    """Mapa más detallado con barrios/zonas famosas de Guadalajara"""
     return {
-        'CENTRO': [('NORTE', 4.5), ('SUR', 5.2), ('ESTE', 3.8), ('OESTE', 4.0)],
-        'NORTE': [('CENTRO', 4.5), ('INDUSTRIAL', 6.2), ('RESIDENCIAL_A', 2.8)],
-        'SUR': [('CENTRO', 5.2), ('PLAYA', 3.5), ('RESIDENCIAL_B', 4.1)],
-        'ESTE': [('CENTRO', 3.8), ('UNIVERSIDAD', 2.5), ('PARQUE', 3.3)],
-        'OESTE': [('CENTRO', 4.0), ('SHOPPING', 2.2), ('RESIDENCIAL_C', 3.7)],
-        'INDUSTRIAL': [('NORTE', 6.2), ('PUERTO', 5.8)],
-        'PLAYA': [('SUR', 3.5), ('RESIDENCIAL_B', 2.9)],
-        'UNIVERSIDAD': [('ESTE', 2.5), ('PARQUE', 1.8)],
-        'PARQUE': [('ESTE', 3.3), ('UNIVERSIDAD', 1.8)],
-        'SHOPPING': [('OESTE', 2.2), ('RESIDENCIAL_C', 2.5)],
-        'RESIDENCIAL_A': [('NORTE', 2.8)],
-        'RESIDENCIAL_B': [('SUR', 4.1), ('PLAYA', 2.9)],
-        'RESIDENCIAL_C': [('OESTE', 3.7), ('SHOPPING', 2.5)],
-        'PUERTO': [('INDUSTRIAL', 5.8)]
+        'CENTRO_GDL': [('CHAPULTEPEC', 4.5), ('TLAQUEPAQUE_CENTRO', 5.2), ('OBLATOS', 3.8), ('ZAPOPAN_CENTRO', 4.0)],
+        'CHAPULTEPEC': [('CENTRO_GDL', 4.5), ('MIRAFLORES_INDUSTRIAL', 6.2), ('PROVIDENCIA', 2.8)],
+        'TLAQUEPAQUE_CENTRO': [('CENTRO_GDL', 5.2), ('PLAZA_DEL_SOL', 3.5), ('EL_COLLI', 4.1)],
+        'OBLATOS': [('CENTRO_GDL', 3.8), ('CUCEI', 2.5), ('PARQUE_AGUA_AZUL', 3.3)],
+        'ZAPOPAN_CENTRO': [('CENTRO_GDL', 4.0), ('ANDARES', 2.2), ('LA_ESTANCIA', 3.7)],
+        'MIRAFLORES_INDUSTRIAL': [('CHAPULTEPEC', 6.2), ('CENTRAL_NUEVA', 5.8)],
+        'PLAZA_DEL_SOL': [('TLAQUEPAQUE_CENTRO', 3.5), ('EL_COLLI', 2.9)],
+        'CUCEI': [('OBLATOS', 2.5), ('PARQUE_AGUA_AZUL', 1.8)],
+        'PARQUE_AGUA_AZUL': [('OBLATOS', 3.3), ('CUCEI', 1.8)],
+        'ANDARES': [('ZAPOPAN_CENTRO', 2.2), ('LA_ESTANCIA', 2.5)],
+        'PROVIDENCIA': [('CHAPULTEPEC', 2.8)],
+        'EL_COLLI': [('TLAQUEPAQUE_CENTRO', 4.1), ('PLAZA_DEL_SOL', 2.9)],
+        'LA_ESTANCIA': [('ZAPOPAN_CENTRO', 3.7), ('ANDARES', 2.5)],
+        'CENTRAL_NUEVA': [('MIRAFLORES_INDUSTRIAL', 5.8)]
     }
 
 def crear_zonas_comerciales():
-    """Crea un mapa de zonas comerciales para delivery de comercios"""
+    """Mapa de zonas comerciales reales de Guadalajara"""
     return {
-        'MERCADO': [('RESTAURANTES', 2.3), ('OFICINAS', 3.5), ('TIENDAS', 2.8)],
-        'RESTAURANTES': [('MERCADO', 2.3), ('OFICINAS', 1.5), ('BARES', 1.2)],
-        'OFICINAS': [('MERCADO', 3.5), ('RESTAURANTES', 1.5), ('TIENDAS', 2.1), ('BANCOS', 1.8)],
-        'TIENDAS': [('MERCADO', 2.8), ('OFICINAS', 2.1), ('CENTRO_COMERCIAL', 3.0)],
-        'BARES': [('RESTAURANTES', 1.2), ('CENTRO_COMERCIAL', 2.5)],
-        'BANCOS': [('OFICINAS', 1.8), ('CENTRO_COMERCIAL', 2.2)],
-        'CENTRO_COMERCIAL': [('TIENDAS', 3.0), ('BARES', 2.5), ('BANCOS', 2.2)]
+        'SAN_JUAN_DE_DIOS': [('AV_CHAPULTEPEC', 2.3), ('ZONA_FINANCIERA', 3.5), ('LA_PERLA', 2.8)],
+        'AV_CHAPULTEPEC': [('SAN_JUAN_DE_DIOS', 2.3), ('ZONA_FINANCIERA', 1.5), ('GLORIETA_MINERVA', 1.2)],
+        'ZONA_FINANCIERA': [('SAN_JUAN_DE_DIOS', 3.5), ('AV_CHAPULTEPEC', 1.5), ('LA_PERLA', 2.1), ('PLAZA_MEXICO', 1.8)],
+        'LA_PERLA': [('SAN_JUAN_DE_DIOS', 2.8), ('ZONA_FINANCIERA', 2.1), ('ANDERES_COMERCIAL', 3.0)],
+        'GLORIETA_MINERVA': [('AV_CHAPULTEPEC', 1.2), ('ANDERES_COMERCIAL', 2.5)],
+        'PLAZA_MEXICO': [('ZONA_FINANCIERA', 1.8), ('ANDERES_COMERCIAL', 2.2)],
+        'ANDERES_COMERCIAL': [('LA_PERLA', 3.0), ('GLORIETA_MINERVA', 2.5), ('PLAZA_MEXICO', 2.2)]
     }
+
 
 def main():
     """Función principal con menú interactivo"""
@@ -251,7 +243,6 @@ def main():
     print("Sistema para encontrar la red de rutas más eficiente")
     print()
     
-    # Selección del mapa
     print("Seleccione el tipo de zona:")
     print("1. Zonas residenciales básicas (5 zonas)")
     print("2. Barrios de ciudad (14 zonas)")
